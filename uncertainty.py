@@ -3,7 +3,6 @@
 @Code Author   : Gaosong SHI
 @Email         : shigs@mail2.sysu.edu.cn
 @File          : uncertainty.py
-@Time          : 2024/03/19
 @Software      : PyCharm
 @describe      : TODO
 
@@ -15,14 +14,14 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from quantile_forest import RandomForestQuantileRegressor
-# from regression_metrics import picp
+from regression_metrics import picp
 
 # Suppress warnings
 warnings.filterwarnings("ignore")
 
 # List of variables and layers
 variable_list = ["OC", "sand", "silt", "clay", "pH", "gravel", "prosity", "cec", "TK", "TN",
-                 "TP", "AK", "AN", "AP", "BD", "W_R", "W_G", "W_B", "D_R", "D_G", "D_B"]
+                 "TP", "AK", "AN", "AP", "BD", "Wet_R", "Wet_G", "Wet_B", "Dry_R", "Dry_G", "Dry_B"]
 layers = [5, 15, 30, 60, 100, 200]
 
 def load_best_params(file_path):
@@ -36,22 +35,27 @@ def load_selected_features(file_path):
 
 def train_and_evaluate_model(variable, layer):
     """Train and evaluate the model for a given variable and layer."""
+    # Load the dataset
     data_path = "../datasets/regressionMatrix_csv/regMatrix_merge.csv"
-    df_data = pd.read_csv(data_path)  # Load merged dataset
+    df = pd.read_csv(data_path)
 
-    best_params_path = f'../others/Grid_Search/{variable}_{layer}cm_grid_search_parameters_results.csv'
-    selected_features_path = f'../others/Grid_Search/{variable}_{layer}cm_selected_features_results.csv'
+    # Define paths to parameter and feature files
+    best_params_file = f'../others/Grid_Search/{variable}_{layer}cm_grid_search_parameters_results.csv'
+    selected_features_file = f'../others/Grid_Search/{variable}_{layer}cm_selected_features_results.csv'
 
     # Load best parameters and selected features
-    best_params = load_best_params(best_params_path)
-    selected_features_list = load_selected_features(selected_features_path)
+    best_params = load_best_params(best_params_file)
+    selected_features = load_selected_features(selected_features_file)
 
-    # Prepare the data
-    X = df_data[selected_features_list]
-    y = df_data[f"{variable}{layer}cm"]
+    # Prepare the data by splitting into train and test sets based on testId
+    testId = np.load(r"../datasets/testProfiles.npy")
+    trainData = df[~df["Code"].isin(testId)]
+    testData = df[df["Code"].isin(testId)]
 
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+    # Define training and testing features and target variables
+    X_train, y_train = trainData[selected_features], trainData[f"{variable}{layer}cm"]
+    X_test, y_test = testData[selected_features], testData[f"{variable}{layer}cm"]
+
 
     # Initialize and train the model
     qrf = RandomForestQuantileRegressor(oob_score=True, n_jobs=-1, random_state=42, **best_params)
@@ -70,7 +74,6 @@ def train_and_evaluate_model(variable, layer):
     # Save the trained model
     model_file = f'../models/QRF_model_pkl/{variable}_{layer}cm.pkl'
     joblib.dump(qrf, model_file)
-
 
 
 

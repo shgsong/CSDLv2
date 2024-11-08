@@ -39,7 +39,7 @@ def load_selected_features(file_path):
 def train_and_evaluate_model(variable, layer):
     """Train and evaluate the model for a given variable and layer."""
     # Load the dataset
-    data_path = "../datasets/regressionMatrix_csv/regMatrix_merge.csv"
+    data_path = "../datasets/regressionMatrix/regMatrix_merge.csv"
     df = pd.read_csv(data_path)
 
     # Define paths to parameter and feature files
